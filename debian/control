@@ -1,5 +1,5 @@
 Source: rippled
-Maintainer: Justin Lynn <j@jaesharp.com>
+Maintainer: Ripple Labs Packaging Team <packagers@ripplelabs.com>
 Section: misc
 Priority: optional
 Standards-Version: 3.9.2
