@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+SCONS=scons
+
+clean:
+	dh_testdir
+	dh_testroot
+	-$(SCONS) -c
+	dh_clean
+
+build:
+	dh_testdir
+	$(SCONS)
+	npm install
+	sh test/runall.sh
+
+%:
+	dh $@

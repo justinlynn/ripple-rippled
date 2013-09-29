@@ -1,0 +1,12 @@
+Source: rippled
+Maintainer: Justin Lynn <j@jaesharp.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 8), scons, pkg-config, ctags, libboost1.48-all-dev | libboost1.49-all-dev, protobuf-compiler, libprotobuf-dev, nodejs, npm
+
+Package: rippled
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Reference Ripple P2P server
+  Ripple's rippled, reference P2P payment network server.
