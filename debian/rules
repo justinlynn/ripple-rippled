@@ -11,8 +11,8 @@ clean:
 build:
 	dh_testdir
 	$(SCONS)
-	npm install
-	npm test
+	-npm install
+	-npm test
 
 %:
 	dh $@
