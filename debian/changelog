@@ -1,3 +1,9 @@
+rippled (0.13.0-4) precise; urgency=low
+
+  * We need to make the build tolerant of failures in the unit tests in order to upload to Soyuz. We need to make these unit tests available offline (without npm install)
+
+ -- Justin Lynn <j@jaesharp.com>  Sun, 29 Sep 2013 21:11:00 -0700
+
 rippled (0.13.0-3) precise; urgency=low
 
   * Upgrade to head of develop.
