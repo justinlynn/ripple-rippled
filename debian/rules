@@ -12,7 +12,7 @@ build:
 	dh_testdir
 	$(SCONS)
 	npm install
-	sh test/runall.sh
+	npm test
 
 %:
 	dh $@
