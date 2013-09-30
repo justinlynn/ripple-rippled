@@ -14,5 +14,7 @@ build:
 	-npm install
 	-npm test
 
+build-arch: build
+
 %:
 	dh $@
