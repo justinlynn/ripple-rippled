@@ -3,13 +3,15 @@ RIPPLE TODO
 --------------------------------------------------------------------------------
 
 Vinnie's List: Changes day to day, descending priority
-- Parse Validator line using cribbed code
+- PeerFinder work
+- Fix and tidy up broken beast classes
+- Validators work
+  * Parse Validator line using cribbed code
 - Parse ContentBodyBuffer from HTTPResponse
 - HTTPMessage improvements
 - HTTPClient improvements based on HTTPServer
 - Ditch old HTTPClient so I can take the name
 - Finish RPCAsyncServer, RPCService and RPCService::Manager
-- Fix and tidy up broken beast classes
 - Fix RPCDoor to respect config setting for [rpc_secure]
 - Validators should delay the application of newly downloaded lists from
   sources, to mitigate the effects of attacks. Unless there's no validators
@@ -49,8 +51,6 @@ David Features:
     Some of it may be things being shut down in the wrong order. Like if you shut
         down the cache and then something that uses the cache, objects may get
         put in the cache after it was shut down.
-
-- Figure out the right behavior of ProtectedCall
 
 - Do something about the throw() reporting weaknesses:
   * Make sure all Sconstruct and .pro builds have debug symbols in release
@@ -127,10 +127,6 @@ David Features:
   * Improve the performance when running all unit tests on Windows
 
 - Rename "fullBelow" to something like haveAllDescendants or haveAllChildren.
-
-- Remove dependence on JobQueue, LoadFeeTrack, and NetworkOPs from LoadManager
-  by providing an observer (beast::ListenerList or Listeners). This way
-  LoadManager does not need stopThread() function.
 
 - Rewrite Sustain to use Beast and work on Windows as well
   * Do not enable watchdog process if a debugger is attached

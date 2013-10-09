@@ -54,10 +54,12 @@
 #include "../../beast/Memory.h"
 #include "../../beast/Intrusive.h"
 #include "../../beast/Net.h"
+#include "../../beast/SafeBool.h"
 #include "../../beast/Strings.h"
 #include "../../beast/TypeTraits.h"
 #include "../../beast/Thread.h"
 #include "../../beast/Utility.h"
+#include "../../beast/Chrono.h"
 
 #include "system/StandardIncludes.h"
 
@@ -82,7 +84,6 @@ class FileOutputStream;
 
 #include "time/AtExitHook.h"
 #include "diagnostic/LeakChecked.h"
-#include "time/RelativeTime.h"
 #include "time/Time.h"
 #include "threads/ScopedLock.h"
 #include "threads/CriticalSection.h"
@@ -146,7 +147,6 @@ class FileOutputStream;
 #include "memory/MemoryAlignment.h"
 #include "memory/CacheLine.h"
 #include "threads/ReadWriteMutex.h"
-#include "diagnostic/SafeBool.h"
 #include "threads/WaitableEvent.h"
 #include "threads/Thread.h"
 #include "threads/SpinLock.h"
@@ -154,8 +154,6 @@ class FileOutputStream;
 #include "thread/MutexTraits.h"
 #include "thread/TrackedMutex.h"
 #include "diagnostic/FatalError.h"
-#include "diagnostic/Error.h"
-#include "diagnostic/Debug.h"
 #include "text/LexicalCast.h"
 #include "memory/ContainerDeletePolicy.h"
 #include "maths/Math.h"
@@ -165,7 +163,6 @@ class FileOutputStream;
 #include "memory/SharedObject.h"
 #include "memory/SharedPtr.h"
 #include "memory/SharedFunction.h"
-#include "diagnostic/ProtectedCall.h"
 #include "containers/AbstractFifo.h"
 #include "text/Identifier.h"
 #include "containers/Variant.h"
@@ -267,6 +264,8 @@ class FileOutputStream;
 #include "thread/Workers.h"
 
 }
+
+#include "thread/ServiceQueue.h"
 
 #if BEAST_MSVC
 #pragma warning (pop)

@@ -17,8 +17,9 @@
 */
 //==============================================================================
 
-namespace Debug
-{
+namespace beast {
+
+namespace Debug {
 
 void breakPoint ()
 {
@@ -328,15 +329,6 @@ public:
     #endif
     }
 
-    static int beastCatchExceptions ()
-    {
-    #ifdef BEAST_CATCH_UNHANDLED_EXCEPTIONS
-        return BEAST_CATCH_UNHANDLED_EXCEPTIONS;
-    #else
-        return 0;
-    #endif
-    }
-
     void runTest ()
     {
         beginTestCase ("diagnostics");
@@ -345,8 +337,7 @@ public:
         logMessage ("_DEBUG                           = " + String::fromNumber (envDebug ()));
         logMessage ("BEAST_DEBUG                      = " + String::fromNumber (beastDebug ()));
         logMessage ("BEAST_FORCE_DEBUG                = " + String::fromNumber (beastForceDebug ()));
-        logMessage ("BEAST_CATCH_UNHANDLED_EXCEPTIONS = " + String::fromNumber (beastCatchExceptions ()));
-
+        logMessage ("sizeof(std::size_t)              = " + String::fromNumber (sizeof(std::size_t)));
         bassertfalse;
 
         fail ();
@@ -358,3 +349,5 @@ public:
 };
 
 static DebugTests debugTests;
+
+}

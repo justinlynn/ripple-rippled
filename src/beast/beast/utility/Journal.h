@@ -38,12 +38,15 @@ public:
     /** Severity level of the message. */
     enum Severity
     {
-        kTrace,
+        kLowestSeverity = 0,
+        kTrace = kLowestSeverity,
         kDebug,
         kInfo,
         kWarning,
         kError,
-        kFatal
+        kFatal,
+
+        kDisabled
     };
 
     //--------------------------------------------------------------------------
@@ -57,10 +60,17 @@ public:
         /** Write text to the sink at the specified severity. */
         virtual void write (Severity severity, std::string const& text) = 0;
 
-        /** Returns `true` if text at the passed severity produces output.
-            The default implementation always returns `true`.
-        */
-        virtual bool active (Severity);
+        /** Returns `true` if text at the passed severity produces output. */
+        virtual bool active (Severity severity) = 0;
+
+        /** Returns `true` if a message is also written to the Output Window (MSVC). */
+        virtual bool console () = 0;
+
+        /** Set the minimum severity this sink will report. */
+        virtual void set_severity (Severity severity) = 0;
+
+        /** Set whether messages are also written to the Output Window (MSVC). */
+        virtual void set_console (bool to_console) = 0;
     };
 
     /** Returns a Sink which does nothing. */
@@ -105,6 +115,7 @@ public:
         Sink& m_sink;
         Severity const m_severity;
         std::ostringstream mutable m_ostream;
+        bool m_toOutputWindow;
     };
 
     //--------------------------------------------------------------------------
@@ -115,16 +126,26 @@ public:
         /** Construct a stream which produces no logging output. */
         Stream ();
 
+        /** Construct a stream that writes to the Sink at the given Severity. */
         Stream (Sink& sink, Severity severity);
+
+        /** Construct or copy another Stream. */
+        /** @{ */
         Stream (Stream const& other);
         Stream& operator= (Stream const& other);
+        /** @} */
 
-        /** Returns `true` if the sink logs messages at the severity of this stream. */
-        bool active() const;
-
+        /** Returns the Sink that this Stream writes to. */
         Sink& sink() const;
+
+        /** Returns the Severity of messages this Stream reports. */
         Severity severity() const;
 
+        /** Returns `true` if sink logs anything at this stream's severity. */
+        bool active() const;
+
+        /** Output stream support. */
+        /** @{ */
         ScopedStream operator<< (std::ostream& manip (std::ostream&)) const;
 
         template <typename T>
@@ -132,6 +153,7 @@ public:
         {
             return ScopedStream (*this, t);
         }
+        /** @} */
 
     private:
         Sink* m_sink;
@@ -145,10 +167,13 @@ public:
     Journal (Journal const& other);
     ~Journal ();
 
+    /** Returns the Sink associated with this Journal. */
+    Sink& sink() const;
+
     /** Returns a stream for this sink, with the specified severity. */
     Stream stream (Severity severity) const;
 
-    /** Returns `true` if the sink logs messages at that severity. */
+    /** Returns `true` if any message would be logged at this severity level. */
     bool active (Severity severity) const;
 
     /** Convenience sink streams for each severity level. */

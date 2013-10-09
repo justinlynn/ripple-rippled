@@ -197,10 +197,10 @@ IPEndpoint& IPEndpoint::operator= (IPEndpoint const& other)
 
 IPEndpoint IPEndpoint::from_string (std::string const& s)
 {
-    std::stringstream ss (s);
+    std::stringstream is (s);
     IPEndpoint ep;
-    ss >> ep;
-    if (! ss.fail())
+    is >> ep;
+    if (! is.fail() && is.rdbuf()->in_avail() == 0)
         return ep;
     return IPEndpoint();
 }
@@ -496,6 +496,61 @@ std::istream& operator>> (std::istream &is, IPEndpoint& ep)
     }
     
     return is;
+}
+
+//------------------------------------------------------------------------------
+
+IPEndpoint IPEndpoint::from_string_altform (std::string const& s)
+{
+    // Accept the regular form if it parses
+    {
+        IPEndpoint ep (IPEndpoint::from_string (s));
+        if (! ep.empty())
+            return ep;
+    }
+
+    // Now try the alt form
+    std::stringstream is (s);
+
+    IPEndpoint::V4 v4;
+    is >> v4;
+    if (! is.fail())
+    {
+        IPEndpoint ep (v4);
+
+        if (is.rdbuf()->in_avail()>0)
+        {
+            if (! parse::expect (is, ' '))
+                return IPEndpoint();
+
+            while (is.rdbuf()->in_avail()>0)
+            {
+                char c;
+                is.get(c);
+                if (c != ' ')
+                {
+                    is.unget();
+                    break;
+                }
+            }
+
+            uint16 port;
+            is >> port;
+            if (is.fail())
+                return IPEndpoint();
+
+            return ep.withPort (port);
+        }
+        else
+        {
+            // Just an address with no port
+            return ep;
+        }
+    }
+
+    // Could be V6 here...
+
+    return IPEndpoint();
 }
 
 //------------------------------------------------------------------------------

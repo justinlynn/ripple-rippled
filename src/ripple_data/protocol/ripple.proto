@@ -14,7 +14,7 @@ enum MessageType
     mtCONTACT               = 11;
     mtGET_PEERS             = 12;
     mtPEERS                 = 13;
-    mtANNOUNCE              = 14;
+    mtENDPOINTS             = 14;
 
     // operations for 'small' nodes
     mtSEARCH_TRANSACTION    = 20;
@@ -232,13 +232,21 @@ message TMPeers
     repeated TMIPv4EndPoint nodes   = 1;
 }
 
-message TMAnnounce
+// An Endpoint describes a network peer that can accept incoming connections
+message TMEndpoint
 {
-    required bytes   serverID             = 1; // The ID of this server
-    required bool    privatePeer          = 2; // This peer is private - the announce will not be propagated
-    required uint32  hopCount             = 3; // The hop count of this server
-    required bytes   viaPeerID            = 4; // The ID of the peer through which we know this server
-    repeated TMIPv4EndPoint connectPoints = 5; // Addresses on which this server accepts connections (can be empty)
+    required TMIPv4EndPoint ipv4 = 1;
+    required uint32         hops = 2;
+    required uint32         slots = 3;         // the number of available incoming slots
+    required uint32         maxSlots = 4;      // the maximum number of incoming slots
+    required uint32         uptimeMinutes = 5; // uptime in minutes
+    required string         features = 6;
+}
+
+// An array of Endpoint messages
+message TMEndpoints
+{
+    repeated TMEndpoint endpoints = 1;
 };
 
 message TMSearchTransaction

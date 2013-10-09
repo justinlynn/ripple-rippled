@@ -37,7 +37,7 @@ LedgerHistory::LedgerHistory ()
     ;
 }
 
-void LedgerHistory::addLedger (Ledger::pointer ledger)
+void LedgerHistory::addLedger (Ledger::pointer ledger, bool validated)
 {
     assert (ledger && ledger->isImmutable ());
     assert (ledger->peekAccountStateMap ()->getHash ().isNonZero ());
@@ -45,7 +45,7 @@ void LedgerHistory::addLedger (Ledger::pointer ledger)
     TaggedCache::ScopedLockType sl (mLedgersByHash.peekMutex (), __FILE__, __LINE__);
 
     mLedgersByHash.canonicalize (ledger->getHash(), ledger, true);
-    if (ledger->isValidated())
+    if (validated)
         mLedgersByIndex[ledger->getLedgerSeq()] = ledger->getHash();
 }
 
@@ -57,7 +57,6 @@ uint256 LedgerHistory::getLedgerHash (uint32 index)
     if (it != mLedgersByIndex.end ())
         return it->second;
 
-    sl.unlock ();
     return uint256 ();
 }
 
@@ -96,7 +95,7 @@ Ledger::pointer LedgerHistory::getLedgerByHash (uint256 const& hash)
     if (ret)
     {
         assert (ret->isImmutable ());
-        assert (ret->getHash () == hash); // FIXME: We seem to be getting these
+        assert (ret->getHash () == hash);
         return ret;
     }
 
@@ -111,32 +110,6 @@ Ledger::pointer LedgerHistory::getLedgerByHash (uint256 const& hash)
     assert (ret->getHash () == hash);
 
     return ret;
-}
-
-Ledger::pointer LedgerHistory::canonicalizeLedger (Ledger::pointer ledger, bool save)
-{
-    assert (ledger->isImmutable ());
-    uint256 h (ledger->getHash ());
-
-    if (!save)
-    {
-        // return input ledger if not in map, otherwise, return corresponding map ledger
-        Ledger::pointer ret = mLedgersByHash.fetch (h);
-
-        if (ret)
-            return ret;
-
-        return ledger;
-    }
-
-    // save input ledger in map if not in map, otherwise return corresponding map ledger
-    TaggedCache::ScopedLockType sl (mLedgersByHash.peekMutex (), __FILE__, __LINE__);
-    mLedgersByHash.canonicalize (h, ledger);
-
-    if (ledger->isValidated ())
-        mLedgersByIndex[ledger->getLedgerSeq ()] = ledger->getHash ();
-
-    return ledger;
 }
 
 void LedgerHistory::builtLedger (Ledger::ref ledger)

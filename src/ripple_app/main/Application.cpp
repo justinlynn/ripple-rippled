@@ -40,6 +40,8 @@ class RPCServiceManagerLog;
 template <> char const* LogPartition::getPartitionName <RPCServiceManagerLog> () { return "RPCServiceManager"; }
 class HTTPServerLog;
 template <> char const* LogPartition::getPartitionName <HTTPServerLog> () { return "RPCServer"; }
+class LoadManagerLog;
+template <> char const* LogPartition::getPartitionName <LoadManagerLog> () { return "LoadManager"; }
 
 //
 //------------------------------------------------------------------------------
@@ -47,10 +49,9 @@ template <> char const* LogPartition::getPartitionName <HTTPServerLog> () { retu
 // VFALCO TODO Move the function definitions into the class declaration
 class ApplicationImp
     : public Application
-    , public Stoppable
+    , public RootStoppable
     , public DeadlineTimer::Listener
-    , LeakChecked <ApplicationImp>
-    , PeerFinder::Callback
+    , public LeakChecked <ApplicationImp>
 {
 private:
     static ApplicationImp* s_instance;
@@ -65,7 +66,7 @@ public:
     //--------------------------------------------------------------------------
 
     ApplicationImp ()
-        : Stoppable ("Application")
+        : RootStoppable ("Application")
         , m_journal (LogJournal::get <ApplicationLog> ())
         , m_tempNodeCache ("NodeCache", 16384, 90)
         , m_sleCache ("LedgerEntryCache", 4096, 120)
@@ -124,7 +125,7 @@ public:
 
         , mFeeVote (IFeeVote::New (10, 50 * SYSTEM_CURRENCY_PARTS, 12.5 * SYSTEM_CURRENCY_PARTS))
 
-        , mFeeTrack (ILoadFeeTrack::New ())
+        , mFeeTrack (LoadFeeTrack::New (LogJournal::get <LoadManagerLog> ()))
 
         , mHashRouter (IHashRouter::New (IHashRouter::getDefaultHoldTime ()))
 
@@ -132,9 +133,7 @@ public:
 
         , mProofOfWorkFactory (ProofOfWorkFactory::New ())
 
-        , m_loadManager (LoadManager::New ())
-
-        , mPeerFinder (PeerFinder::New (*this))
+        , m_loadManager (LoadManager::New (*this, LogJournal::get <LoadManagerLog> ()))
 
         , m_sweepTimer (this)
 
@@ -145,8 +144,6 @@ public:
 
         // VFALCO TODO remove these once the call is thread safe.
         HashMaps::getInstance ().initializeNonce <size_t> ();
-
-        initValidatorsConfig ();
     }
 
     ~ApplicationImp ()
@@ -159,30 +156,6 @@ public:
 
         bassert (s_instance == this);
         s_instance = nullptr;
-    }
-
-    //--------------------------------------------------------------------------
-
-    // Initialize the Validators object with Config information.
-    void initValidatorsConfig ()
-    {
-#if RIPPLE_USE_NEW_VALIDATORS
-        {
-            std::vector <std::string> const& strings (getConfig().validators);
-            if (! strings.empty ())
-                m_validators->addStrings ("rippled.cfg", strings);
-        }
-
-        if (! getConfig().getValidatorsURL().empty())
-        {
-            m_validators->addURL (getConfig().getValidatorsURL());
-        }
-
-        if (getConfig().getValidatorsFile() != File::nonexistent ())
-        {
-            m_validators->addFile (getConfig().getValidatorsFile());
-        }
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -272,7 +245,7 @@ public:
         return *mFeatures;
     }
 
-    ILoadFeeTrack& getFeeTrack ()
+    LoadFeeTrack& getFeeTrack ()
     {
         return *mFeeTrack;
     }
@@ -305,11 +278,6 @@ public:
     Peers& getPeers ()
     {
         return *m_peers;
-    }
-
-    PeerFinder& getPeerFinder ()
-    {
-        return *mPeerFinder;
     }
 
     // VFALCO TODO Move these to the .cpp
@@ -389,10 +357,6 @@ public:
     {
         // VFALCO NOTE: 0 means use heuristics to determine the thread count.
         m_jobQueue->setThreadCount (0, getConfig ().RUN_STANDALONE);
-
-        m_sweepTimer.setExpiration (10);
-
-        m_loadManager->start ();
 
     #if ! BEAST_WIN32
     #ifdef SIGINT
@@ -646,14 +610,52 @@ public:
     }
 
     //--------------------------------------------------------------------------
+
+    // Initialize the Validators object with Config information.
+    void prepareValidators ()
+    {
+        {
+            std::vector <std::string> const& strings (getConfig().validators);
+            if (! strings.empty ())
+                m_validators->addStrings ("rippled.cfg", strings);
+        }
+
+        if (! getConfig().getValidatorsURL().empty())
+        {
+            m_validators->addURL (getConfig().getValidatorsURL());
+        }
+
+        if (getConfig().getValidatorsFile() != File::nonexistent ())
+        {
+            m_validators->addFile (getConfig().getValidatorsFile());
+        }
+    }
+
+    //--------------------------------------------------------------------------
     //
     // Stoppable
+    //
+
+    void onPrepare (Journal)
+    {
+        prepareValidators ();
+    }
+
+    void onStart (Journal journal)
+    {
+        journal.debug << "Application starting";
+
+        m_sweepTimer.setExpiration (10);
+    }
 
     // Called to indicate shutdown.
-    void onStop ()
+    void onStop (Journal journal)
     {
+        journal.debug << "Application stopping";
+
         m_sweepTimer.cancel();
 
+        // VFALCO TODO get rid of this flag
         mShutdown = true;
 
         mValidations->flush ();
@@ -667,6 +669,15 @@ public:
 
     void run ()
     {
+        // VFALCO NOTE I put this here in the hopes that when unit tests run (which
+        //             tragically require an Application object to exist or else they
+        //             crash), the run() function will not get called and we will
+        //             avoid doing silly things like contacting the SNTP server, or
+        //             running the various logic threads like Validators, PeerFinder, etc.
+        prepare (m_journal);
+        start (m_journal);
+    
+
         {
             if (!getConfig ().RUN_STANDALONE)
             {
@@ -710,7 +721,7 @@ public:
             //             eliminate LoadManager's dependency inversions.
             //
             // This deletes the object and therefore, stops the thread.
-            m_loadManager = nullptr;
+            //m_loadManager = nullptr;
 
             m_journal.info << "Done.";
 
@@ -726,7 +737,7 @@ public:
         m_journal.info << "Received shutdown request";
         StopSustain ();
 
-        stop (m_journal.warning);
+        stop (m_journal);
     }
 
     void signalStop ()
@@ -837,12 +848,11 @@ private:
     ScopedPointer <Validators::Manager> m_validators;
     ScopedPointer <IFeatures> mFeatures;
     ScopedPointer <IFeeVote> mFeeVote;
-    ScopedPointer <ILoadFeeTrack> mFeeTrack;
+    ScopedPointer <LoadFeeTrack> mFeeTrack;
     ScopedPointer <IHashRouter> mHashRouter;
     ScopedPointer <Validations> mValidations;
     ScopedPointer <ProofOfWorkFactory> mProofOfWorkFactory;
     ScopedPointer <LoadManager> m_loadManager;
-    ScopedPointer <PeerFinder> mPeerFinder;
     DeadlineTimer m_sweepTimer;
     bool volatile mShutdown;
 
@@ -1187,8 +1197,7 @@ ApplicationImp* ApplicationImp::s_instance;
 
 Application* Application::New ()
 {
-    ScopedPointer <Application> object (new ApplicationImp);
-    return object.release();
+    return new ApplicationImp;
 }
 
 Application& getApp ()

@@ -45,3 +45,5 @@
 #include "impl/json_reader.cpp"
 #include "impl/json_value.cpp"
 #include "impl/json_writer.cpp"
+
+#include "impl/Tests.cpp"

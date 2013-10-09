@@ -376,7 +376,7 @@ public:
     //
     // Stoppable
     
-    void onStop ()
+    void onStop (Journal)
     {
         m_heartbeatTimer.cancel();
         m_clusterTimer.cancel();
@@ -1423,6 +1423,8 @@ bool NetworkOPsImp::haveConsensusObject ()
         if (!ledgerChange)
         {
             m_journal.info << "Beginning consensus due to peer action";
+            if ( ((mMode == omCONNECTED) || (mMode == omTRACKING)) && (getPreviousProposers() >= m_ledgerMaster.getMinValidations()) )
+                setMode (omFULL);
             beginConsensus (networkClosed, m_ledgerMaster.getCurrentLedger ());
         }
     }
@@ -3004,7 +3006,7 @@ void NetworkOPsImp::makeFetchPack (Job&, boost::weak_ptr<Peer> wPeer,
             wantLedger->peekAccountStateMap ()->getFetchPack (haveLedger->peekAccountStateMap ().get (), true, 1024,
                     BIND_TYPE (fpAppender, &reply, lSeq, P_1, P_2));
 
-            if (wantLedger->getAccountHash ().isNonZero ())
+            if (wantLedger->getTransHash ().isNonZero ())
                 wantLedger->peekTransactionMap ()->getFetchPack (NULL, true, 256,
                         BIND_TYPE (fpAppender, &reply, lSeq, P_1, P_2));
 

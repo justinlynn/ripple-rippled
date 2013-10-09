@@ -24,6 +24,8 @@
 #ifndef BEAST_BYTEORDER_H_INCLUDED
 #define BEAST_BYTEORDER_H_INCLUDED
 
+#include "Config.h"
+#include "CStdInt.h"
 #include "Uncopyable.h"
 
 namespace beast {
@@ -32,7 +34,7 @@ namespace beast {
 /** Contains static methods for converting the byte order between different
     endiannesses.
 */
-class BEAST_API ByteOrder : public Uncopyable
+class ByteOrder : public Uncopyable
 {
 public:
     //==============================================================================

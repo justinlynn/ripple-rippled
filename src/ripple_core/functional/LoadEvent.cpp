@@ -21,7 +21,7 @@ LoadEvent::LoadEvent (LoadMonitor& monitor, const std::string& name, bool should
     : m_loadMonitor (monitor)
     , m_isRunning (false)
     , m_name (name)
-    , m_timeStopped (Time::getCurrentTime())
+    , m_timeStopped (RelativeTime::fromStartup())
     , m_secondsWaiting (0)
     , m_secondsRunning (0)
 {
@@ -40,17 +40,17 @@ std::string const& LoadEvent::name () const
     return m_name;
 }
 
-std::size_t LoadEvent::getSecondsWaiting() const
+double LoadEvent::getSecondsWaiting() const
 {
     return m_secondsWaiting;
 }
 
-std::size_t LoadEvent::getSecondsRunning() const
+double LoadEvent::getSecondsRunning() const
 {
     return m_secondsRunning;
 }
 
-std::size_t LoadEvent::getSecondsTotal() const
+double LoadEvent::getSecondsTotal() const
 {
     return m_secondsWaiting + m_secondsRunning;
 }
@@ -62,7 +62,7 @@ void LoadEvent::reName (const std::string& name)
 
 void LoadEvent::start ()
 {
-    Time currentTime (Time::getCurrentTime());
+    RelativeTime const currentTime (RelativeTime::fromStartup());
 
     // If we already called start, this call will replace the previous one.
     if (m_isRunning)
@@ -82,7 +82,7 @@ void LoadEvent::stop ()
 {
     bassert (m_isRunning);
 
-    m_timeStopped = Time::getCurrentTime();
+    m_timeStopped = RelativeTime::fromStartup();
     m_secondsRunning += (m_timeStopped - m_timeStarted).inSeconds();
 
     m_isRunning = false;

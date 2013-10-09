@@ -48,23 +48,23 @@ public:
         return m_url.full();
     }
 
-    Result fetch (CancelCallback&, Journal journal)
+    Result fetch (Journal journal)
     {
         Result result;
 
         ScopedPointer <HTTPClientBase> client (HTTPClientBase::New ());
 
-        HTTPClientBase::Result httpResult (client->get (m_url));
+        HTTPClientBase::result_type httpResult (client->get (m_url));
 
-        if (httpResult.error == 0)
+        if (httpResult.first == 0)
         {
-            //Logger::outputDebugString (httpResult.response->toString ());
+            //Logger::outputDebugString (httpResult.second->toString ());
         }
         else
         {
             journal.error <<
                 "HTTP GET to " << m_url.full().toStdString() <<
-                " failed: '" << httpResult.error.message () << "'";
+                " failed: '" << httpResult.first.message () << "'";
         }
 
         return result;

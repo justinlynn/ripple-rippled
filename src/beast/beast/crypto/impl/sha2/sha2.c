@@ -103,9 +103,9 @@
  * types and pointing out recent ANSI C support for uintXX_t in inttypes.h.
  */
 
-typedef u_int8_t  sha2_byte;	/* Exactly 1 byte */
-typedef u_int32_t sha2_word32;	/* Exactly 4 bytes */
-typedef u_int64_t sha2_word64;	/* Exactly 8 bytes */
+typedef uint8  sha2_byte;	/* Exactly 1 byte */
+typedef uint32 sha2_word32;	/* Exactly 4 bytes */
+typedef uint64 sha2_word64;	/* Exactly 8 bytes */
 
 /*** SHA-256/384/512 Various Length Definitions ***********************/
 /* NOTE: Most of these are in sha2.h */
@@ -181,6 +181,7 @@ typedef u_int64_t sha2_word64;	/* Exactly 8 bytes */
  */
 /* Shift-right (used in SHA-256, SHA-384, and SHA-512): */
 #define R(b,x) 		((x) >> (b))
+
 /* 32-bit Rotate-right (used in SHA-256): */
 #define S32(b,x)	(((x) >> (b)) | ((x) << (32 - (b))))
 /* 64-bit Rotate-right (used in SHA-384 and SHA-512): */
@@ -1050,3 +1051,17 @@ char* SHA384_Data(const sha2_byte* data, size_t len, char digest[SHA384_DIGEST_S
 	SHA384_Update(&context, data, len);
 	return SHA384_End(&context, digest);
 }
+
+#undef R
+#undef S32
+#undef S64
+#undef Ch
+#undef Maj
+#undef Sigma0_256
+#undef Sigma1_256
+#undef sigma0_256
+#undef sigma1_256
+#undef Sigma0_512
+#undef Sigma1_512
+#undef sigma0_512
+#undef sigma1_512

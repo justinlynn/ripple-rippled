@@ -17,7 +17,6 @@
 */
 //==============================================================================
 
-
 #ifndef BEAST_BEASTCONFIG_H_INCLUDED
 #define BEAST_BEASTCONFIG_H_INCLUDED
 
@@ -73,16 +72,6 @@
 */
 #ifndef   BEAST_COMPILER_CHECKS_SOCKET_OVERRIDES
 //#define BEAST_COMPILER_CHECKS_SOCKET_OVERRIDES 1
-#endif
-
-/** Config: BEAST_CATCH_UNHANDLED_EXCEPTIONS
-    This will wrap thread entry points with an exception catching block.
-    A customizable hook is provided to get called when unhandled exceptions
-    are thrown.
-    @see ProtectedCall
-*/
-#ifndef BEAST_CATCH_UNHANDLED_EXCEPTIONS
-#define BEAST_CATCH_UNHANDLED_EXCEPTIONS 1
 #endif
 
 //------------------------------------------------------------------------------
@@ -174,17 +163,12 @@
 #define RIPPLE_USE_NEW_VALIDATORS 0
 #endif
 
-// Turning this on makes the Application object get destroyed,
-// which is part of an attempt to have a "clean exit."
-#ifndef RIPPLE_APPLICATION_CLEAN_EXIT
-#define RIPPLE_APPLICATION_CLEAN_EXIT 1
-#endif
-
-// This is only here temporarily. Use it to turn off the sending of
-// "ANNOUNCE" messages if you suspect that you're having problems
-// because of it.
-#ifndef RIPPLE_USE_MT_ANNOUNCE
-#define RIPPLE_USE_MT_ANNOUNCE 0
+// Turning this on will use the new PeerFinder logic to establish connections
+// to other peers. Even with this off, PeerFinder will still send mtENDPOINTS
+// messages as needed, and collect legacy IP endpoint information.
+//
+#ifndef RIPPLE_USE_PEERFINDER
+#define RIPPLE_USE_PEERFINDER 0
 #endif
 
 // Here temporarily

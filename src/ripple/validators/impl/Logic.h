@@ -17,7 +17,6 @@
 */
 //==============================================================================
 
-
 #ifndef RIPPLE_VALIDATORS_LOGIC_H_INCLUDED
 #define RIPPLE_VALIDATORS_LOGIC_H_INCLUDED
 
@@ -27,13 +26,16 @@ namespace Validators {
 // Tunable constants
 enum
 {
+#if 0
     // We will fetch a source at this interval
     hoursBetweenFetches = 24
-
     ,secondsBetweenFetches = hoursBetweenFetches * 60 * 60
-
     // We check Source expirations on this time interval
     ,checkEverySeconds = 60 * 60
+#else
+     secondsBetweenFetches = 59
+    ,checkEverySeconds = 60
+#endif
 
     // This tunes the preallocated arrays
     ,expectedNumberOfResults = 1000
@@ -44,53 +46,6 @@ enum
 enum
 {
     maxSizeBeforeSwap    = 100
-};
-
-// Simple container swapping template
-template <class Container>
-class AgedHistory
-{
-public:
-    typedef Container container_type;
-
-    AgedHistory()
-        : m_p1 (&m_c1)
-        , m_p2 (&m_c2)
-    {
-    }
-
-    AgedHistory (AgedHistory const& other)
-        : m_c1 (other.front())
-        , m_c2 (other.back())
-        , m_p1 (&m_c1)
-        , m_p2 (&m_c2)
-    {
-    }
-
-    AgedHistory& operator= (AgedHistory const& other)
-    {
-        m_c1 = other.front();
-        m_c2 = other.back();
-        m_p1 = &m_c1;
-        m_p2 = &m_c2;
-        return *this;
-    }
-
-    void swap () { std::swap (m_p1, m_p2); }
-
-    Container*       operator-> ()       { return m_p1; }
-    Container const* operator-> () const { return m_p1; }
-
-    Container&       front()       { return *m_p1; }
-    Container const& front() const { return *m_p1; }
-    Container&       back()        { return *m_p2; }
-    Container const& back()  const { return *m_p2; }
-
-private:
-    Container  m_c1;
-    Container  m_c2;
-    Container* m_p1;
-    Container* m_p2;
 };
 
 //------------------------------------------------------------------------------
@@ -266,6 +221,11 @@ public:
 
     struct State
     {
+        State ()
+        {
+            //sources.reserve (64);
+        }
+
         MapType map;
         SourcesType sources;
     };
@@ -309,22 +269,19 @@ public:
     //
     void addStatic (Source* source)
     {
-        m_journal.info << "Add static Source, " << source->name();
+        m_journal.info << "Addding static source '" << source->name() << "'";
 
         ScopedPointer <Source> object (source);
+        Source::Result result (object->fetch (m_journal));
 
-        NoOpCancelCallback cancelCallback;
-
-        Source::Result result (object->fetch (cancelCallback, m_journal));
-
-        SharedState::Access state (m_state);
         if (result.success)
         {
-            merge (result.list, state);
+            SharedState::Access state (m_state);
+            merge (result.list, source, state);
         }
         else
         {
-            // VFALCO NOTE Maybe log the error and message?
+            // TODO: Report the error
         }
     }
 
@@ -332,18 +289,23 @@ public:
     //
     void add (Source* source)
     {
-        m_journal.info << "Add Source, " << source->name();
-        SharedState::Access state (m_state);
-        SourceDesc& desc (*state->sources.emplace_back ());
-        desc.source = source;
-        m_store.insert (desc);
+        m_journal.info << "Adding source '" << source->name() << "'";
+
+        {
+            SharedState::Access state (m_state);
+            SourceDesc& desc (*state->sources.emplace_back ());
+            desc.source = source;
+            m_store.insert (desc);
+        }
     }
 
     // Add each entry in the list to the map, incrementing the
     // reference count if it already exists, and updating fields.
     //
-    void merge (Array <Source::Info> const& list, SharedState::Access& state)
+    void merge (Array <Source::Info> const& list,
+        Source* source, SharedState::Access& state)
     {
+        std::size_t numAdded (0);
         for (std::size_t i = 0; i < list.size (); ++i)
         {
             Source::Info const& info (list.getReference (i));
@@ -354,16 +316,22 @@ public:
             if (result.second)
             {
                 // This is a new one
+                ++numAdded;
                 dirtyChosen ();
             }
         }
+
+        m_journal.info << "Added " << numAdded
+                       << " trusted validators from '" << source->name() << "'";
     }
 
     // Decrement the reference count of each item in the list
     // in the map.
     //
-    void remove (Array <Source::Info> const& list, SharedState::Access& state)
+    void remove (Array <Source::Info> const& list,
+        Source* source, SharedState::Access& state)
     {
+        std::size_t numRemoved (0);
         for (std::size_t i = 0; i < list.size (); ++i)
         {
             Source::Info const& info (list.getReference (i));
@@ -373,10 +341,14 @@ public:
             if (--validatorInfo.refCount == 0)
             {
                 // Last reference removed
+                ++numRemoved;
                 state->map.erase (iter);
                 dirtyChosen ();
             }
         }
+
+        m_journal.info << "Removed " << numRemoved
+                       << " trusted validators from '" << source->name() << "'";
     }
 
     //----------------------------------------------------------------------
@@ -435,49 +407,46 @@ public:
     //
 
     /** Perform a fetch on the source. */
-    void fetch (SourceDesc& desc, CancelCallback& callback)
+    void fetch (SourceDesc& desc)
     {
         m_journal.info << "fetch ('" << desc.source->name() << "')";
 
-        Source::Result result (desc.source->fetch (callback, m_journal));
+        Source::Result result (desc.source->fetch (m_journal));
 
-        if (! callback.shouldCancel ())
+        // Reset fetch timer for the source.
+        desc.whenToFetch = Time::getCurrentTime () +
+            RelativeTime (secondsBetweenFetches);
+
+        if (result.success)
         {
-            // Reset fetch timer for the source.
-            desc.whenToFetch = Time::getCurrentTime () +
-                RelativeTime (secondsBetweenFetches);
+            SharedState::Access state (m_state);
 
-            if (result.success)
-            {
-                SharedState::Access state (m_state);
+            // Add the new source info to the map
+            merge (result.list, desc.source, state);
 
-                // Add the new source info to the map
-                merge (result.list, state);
+            // Swap lists
+            desc.result.swapWith (result);
 
-                // Swap lists
-                desc.result.swapWith (result);
+            // Remove the old source info from the map
+            remove (result.list, desc.source, state);
 
-                // Remove the old source info from the map
-                remove (result.list, state);
+            // See if we need to rebuild
+            checkChosen ();
 
-                // See if we need to rebuild
-                checkChosen ();
+            // Reset failure status
+            desc.numberOfFailures = 0;
+            desc.status = SourceDesc::statusFetched;
 
-                // Reset failure status
-                desc.numberOfFailures = 0;
-                desc.status = SourceDesc::statusFetched;
+            // Update the source's list in the store
+            m_store.update (desc, true);
+        }
+        else
+        {
+            ++desc.numberOfFailures;
+            desc.status = SourceDesc::statusFailed;
 
-                // Update the source's list in the store
-                m_store.update (desc, true);
-            }
-            else
-            {
-                ++desc.numberOfFailures;
-                desc.status = SourceDesc::statusFailed;
-
-                // Record the failure in the Store
-                m_store.update (desc);
-            }
+            // Record the failure in the Store
+            m_store.update (desc);
         }
     }
 
@@ -485,22 +454,22 @@ public:
     void expire (SourceDesc& desc, SharedState::Access& state)
     {
         // Decrement reference count on each validator
-        remove (desc.result.list, state);
+        remove (desc.result.list, desc.source, state);
 
         m_store.update (desc);
     }
 
-    /** Check each Source to see if it needs processing.
-        @return `true` if an interruption occurred.
+    /** Process up to one source that needs fetching.
+        @return The number of sources that were fetched.
     */
-    bool check (CancelCallback& callback)
+    std::size_t fetch_one ()
     {
-        bool interrupted (false);
+        std::size_t n (0);
         Time const currentTime (Time::getCurrentTime ());
         
         SharedState::Access state (m_state);
         for (SourcesType::iterator iter = state->sources.begin ();
-            iter != state->sources.end (); ++iter)
+            (n == 0) && iter != state->sources.end (); ++iter)
         {
             SourceDesc& desc (*iter);
 
@@ -508,12 +477,8 @@ public:
             //
             if (desc.whenToFetch <= currentTime)
             {
-                fetch (desc, callback);
-                if (callback.shouldCancel ())
-                {
-                    interrupted = true;
-                    break;
-                }
+                fetch (desc);
+                ++n;
             }
 
             // See if we need to expire
@@ -525,7 +490,7 @@ public:
             }
         }
 
-        return interrupted;
+        return n;
     }
 
     //----------------------------------------------------------------------

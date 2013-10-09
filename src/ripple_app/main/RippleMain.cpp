@@ -17,28 +17,15 @@
 */
 //==============================================================================
 
+namespace po = boost::program_options;
+
 RippleMain::RippleMain()
 {
-    ProtectedCall::setHandler (*this);
 }
 
 RippleMain::~RippleMain()
 {
-
 }
-
-void RippleMain::onException (ProtectedCall::Exception const& e) const
-{
-#if BEAST_MSVC
-    ExitProcess(0);
-#else
-    _Exit(EXIT_FAILURE);
-#endif
-}
-
-//------------------------------------------------------------------------------
-
-namespace po = boost::program_options;
 
 void setupServer ()
 {
@@ -459,7 +446,7 @@ int RippleMain::run (int argc, char const* const* argv)
         {
             // No arguments. Run server.
             ScopedPointer <Application> app (Application::New ());
-            setupServer ();
+            setupServer ();            
             startServer ();
         }
         else

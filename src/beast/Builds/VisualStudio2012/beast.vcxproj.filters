@@ -73,6 +73,9 @@
     <None Include="..\..\beast\crypto\impl\sha2\sha2test.pl">
       <Filter>beast\crypto\impl\sha2</Filter>
     </None>
+    <None Include="..\..\scripts\compile.sh">
+      <Filter>scripts</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="beast_core">
@@ -198,15 +201,6 @@
     <Filter Include="beast_extras\traits">
       <UniqueIdentifier>{bf498396-2e1f-4903-be68-3053ba439af5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="beast">
-      <UniqueIdentifier>{92d1bb42-289a-4444-85c7-cb87540f2fff}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="beast\intrusive">
-      <UniqueIdentifier>{8832eb52-53f9-4850-8dc9-1d579a386a0e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="beast\mpl">
-      <UniqueIdentifier>{5904368f-a0f2-4d26-a031-8cbe4448dc3f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="beast_asio\protocol">
       <UniqueIdentifier>{c0724499-ab69-40c3-90e2-65242dbd2eaa}</UniqueIdentifier>
     </Filter>
@@ -215,6 +209,15 @@
     </Filter>
     <Filter Include="_meta">
       <UniqueIdentifier>{27052a76-e315-4725-9d9a-1233c7d71aba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast">
+      <UniqueIdentifier>{92d1bb42-289a-4444-85c7-cb87540f2fff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\intrusive">
+      <UniqueIdentifier>{8832eb52-53f9-4850-8dc9-1d579a386a0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\mpl">
+      <UniqueIdentifier>{5904368f-a0f2-4d26-a031-8cbe4448dc3f}</UniqueIdentifier>
     </Filter>
     <Filter Include="beast\net">
       <UniqueIdentifier>{5faa76ea-5691-4e63-8833-577f92991356}</UniqueIdentifier>
@@ -263,6 +266,24 @@
     </Filter>
     <Filter Include="beast\crypto\impl\sha2">
       <UniqueIdentifier>{44489531-f44a-439a-a6ea-d32c252b1e8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\chrono">
+      <UniqueIdentifier>{57dc7059-cbb2-437c-9c52-79825d9a4cf5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\chrono\impl">
+      <UniqueIdentifier>{39886e0f-1607-4b7a-81cf-011d83dadee3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{c65af439-8c23-46c3-9b95-7da15651e5f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\config\compiler">
+      <UniqueIdentifier>{8d88283b-24ec-49ca-a94b-cb6271bc14f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\config\platform">
+      <UniqueIdentifier>{38c81e1f-f831-4632-af45-6340683f3346}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beast\config\stdlib">
+      <UniqueIdentifier>{7243e5e5-ad7e-4d81-8444-d545919e850c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -491,9 +512,6 @@
     <ClInclude Include="..\..\modules\beast_core\time\PerformanceCounter.h">
       <Filter>beast_core\time</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\modules\beast_core\time\RelativeTime.h">
-      <Filter>beast_core\time</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\modules\beast_core\time\Time.h">
       <Filter>beast_core\time</Filter>
     </ClInclude>
@@ -575,19 +593,10 @@
     <ClInclude Include="..\..\modules\beast_core\containers\SortedLookupTable.h">
       <Filter>beast_core\containers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\modules\beast_core\diagnostic\Debug.h">
-      <Filter>beast_core\diagnostic</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\modules\beast_core\diagnostic\Error.h">
-      <Filter>beast_core\diagnostic</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\modules\beast_core\diagnostic\FPUFlags.h">
       <Filter>beast_core\diagnostic</Filter>
     </ClInclude>
     <ClInclude Include="..\..\modules\beast_core\diagnostic\LeakChecked.h">
-      <Filter>beast_core\diagnostic</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\modules\beast_core\diagnostic\SafeBool.h">
       <Filter>beast_core\diagnostic</Filter>
     </ClInclude>
     <ClInclude Include="..\..\modules\beast_core\diagnostic\Throw.h">
@@ -989,9 +998,6 @@
     <ClInclude Include="..\..\modules\beast_core\misc\Main.h">
       <Filter>beast_core\misc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\modules\beast_core\diagnostic\ProtectedCall.h">
-      <Filter>beast_core\diagnostic</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\modules\beast_core\diagnostic\FatalError.h">
       <Filter>beast_core\diagnostic</Filter>
     </ClInclude>
@@ -1175,7 +1181,6 @@
     <ClInclude Include="..\..\beast\http\ParsedURL.h">
       <Filter>beast\http</Filter>
     </ClInclude>
-    <ClInclude Include="BeastConfig.h" />
     <ClInclude Include="..\..\beast\FixedArray.h">
       <Filter>beast</Filter>
     </ClInclude>
@@ -1190,6 +1195,67 @@
     </ClInclude>
     <ClInclude Include="..\..\beast\crypto\Sha256.h">
       <Filter>beast\crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\modules\beast_asio\async\WrapHandler.h">
+      <Filter>beast_asio\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\modules\beast_asio\async\AbstractHandler.h">
+      <Filter>beast_asio\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\modules\beast_core\thread\ServiceQueue.h">
+      <Filter>beast_core\thread</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\Chrono.h">
+      <Filter>beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\chrono\RelativeTime.h">
+      <Filter>beast\chrono</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\SafeBool.h">
+      <Filter>beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\config\BeastConfig.h" />
+    <ClInclude Include="..\..\beast\utility\Error.h">
+      <Filter>beast\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\utility\Debug.h">
+      <Filter>beast\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\compiler\Clang.h">
+      <Filter>beast\config\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\compiler\Gcc.h">
+      <Filter>beast\config\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\compiler\Intel.h">
+      <Filter>beast\config\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\compiler\VisualC.h">
+      <Filter>beast\config\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\platform\Android.h">
+      <Filter>beast\config\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\platform\Bsd.h">
+      <Filter>beast\config\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\platform\Linux.h">
+      <Filter>beast\config\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\platform\MacOS.h">
+      <Filter>beast\config\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\platform\Win32.h">
+      <Filter>beast\config\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\SelectCompilerConfig.h">
+      <Filter>beast\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\SelectPlatformConfig.h">
+      <Filter>beast\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\beast\config\SelectStdlibConfig.h">
+      <Filter>beast\config</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1370,9 +1436,6 @@
     <ClCompile Include="..\..\modules\beast_core\time\PerformanceCounter.cpp">
       <Filter>beast_core\time</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\modules\beast_core\time\RelativeTime.cpp">
-      <Filter>beast_core\time</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\modules\beast_core\time\Time.cpp">
       <Filter>beast_core\time</Filter>
     </ClCompile>
@@ -1435,12 +1498,6 @@
     </ClCompile>
     <ClCompile Include="..\..\modules\beast_core\native\bsd_Threads.cpp">
       <Filter>beast_core\native</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\modules\beast_core\diagnostic\Debug.cpp">
-      <Filter>beast_core\diagnostic</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\modules\beast_core\diagnostic\Error.cpp">
-      <Filter>beast_core\diagnostic</Filter>
     </ClCompile>
     <ClCompile Include="..\..\modules\beast_core\diagnostic\FPUFlags.cpp">
       <Filter>beast_core\diagnostic</Filter>
@@ -1670,9 +1727,6 @@
     <ClCompile Include="..\..\modules\beast_core\misc\Main.cpp">
       <Filter>beast_core\misc</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\modules\beast_core\diagnostic\ProtectedCall.cpp">
-      <Filter>beast_core\diagnostic</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\modules\beast_core\diagnostic\FatalError.cpp">
       <Filter>beast_core\diagnostic</Filter>
     </ClCompile>
@@ -1756,6 +1810,21 @@
     </ClCompile>
     <ClCompile Include="..\..\beast\crypto\impl\Sha256.cpp">
       <Filter>beast\crypto\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\modules\beast_core\thread\ServiceQueue.cpp">
+      <Filter>beast_core\thread</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\beast\chrono\impl\RelativeTime.cpp">
+      <Filter>beast\chrono\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\beast\chrono\Chrono.cpp">
+      <Filter>beast\chrono</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\beast\utility\impl\Debug.cpp">
+      <Filter>beast\utility\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\beast\utility\impl\Error.cpp">
+      <Filter>beast\utility\impl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

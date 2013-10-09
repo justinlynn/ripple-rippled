@@ -17,85 +17,82 @@
 */
 //==============================================================================
 
+/** ChosenValidators (formerly known as UNL)
 
-/*
+    Motivation:
 
-Information to track:
+    To protect the integrity of the shared ledger data structure, Validators
+    independently sign LedgerHash objects with their RipplePublicKey. These
+    signed Validations are propagated through the peer to peer network so
+    that other nodes may inspect them. Every peer and client on the network
+    gains confidence in a ledger and its associated chain of previous ledgers
+    by maintaining a suitably sized list of Validator public keys that it
+    trusts.
 
-- Percentage of validations that the validator has signed
-- Number of validations the validator signed that never got accepted
+    The most important factors in choosing Validators for a ChosenValidators
+    list (the name we will use to designate such a list) are the following:
+
+        - That different Validators are not controlled by one entity
+        - That each Validator participates in a majority of ledgers
+        - That a Validator does not sign ledgers which fail consensus
+
+    This module maintains ChosenValidators list. The list is built from a set
+    of independent Source objects, which may come from the configuration file,
+    a separate file, a URL from some trusted domain, or from the network itself.
+
+    In order that rippled administrators may publish their ChosenValidators
+    list at a URL on a trusted domain that they own, this module compiles
+    statistics on ledgers signed by validators and stores them in a database.
+    From this database reports and alerts may be generated so that up-to-date
+    information about the health of the set of ChosenValidators is always
+    availabile.
+
+    In addition to the automated statistics provided by the module, it is
+    expected that organizations and meta-organizations will form from
+    stakeholders such as gateways who publish their own lists and provide
+    "best practices" to further refine the quality of validators placed into
+    ChosenValidators list.
 
 
-- Target number for Chosen
-- Pseudo-randomly choose a subset from Chosen
+    ----------------------------------------------------------------------------
 
+    Unorganized Notes:
 
+    David:
+      Maybe OC should have a URL that you can query to get the latest list of URI's
+      for OC-approved organzations that publish lists of validators. The server and
+      client can ship with that master trust URL and also the list of URI's at the
+      time it's released, in case for some reason it can't pull from OC. That would
+      make the default installation safe even against major changes in the
+      organizations that publish validator lists.
 
+      The difference is that if an organization that provides lists of validators
+      goes rogue, administrators don't have to act.
 
+    TODO:
+      Write up from end-user perspective on the deployment and administration
+      of this feature, on the wiki. "DRAFT" or "PROPOSE" to mark it as provisional.
+      Template: https://ripple.com/wiki/Federation_protocol
+      - What to do if you're a publisher of ValidatorList
+      - What to do if you're a rippled administrator
+      - Overview of how ChosenValidators works
 
-Goal:
+    Goals:
+      Make default configuration of rippled secure.
+        * Ship with TrustedUriList
+        * Also have a preset RankedValidators
+      Eliminate administrative burden of maintaining
+      Produce the ChosenValidators list.
+      Allow quantitative analysis of network health.
 
-  Provide the listener with a ValidatorList.
-  - This forms the UNL
-
-Task:
-
-  fetch ValidatorInfo array from a source
-
-  - We have the old one and the new one, compute the following:
-
-    * unchanged validators list
-    * new validators list
-    * removed validators list
-
-  - From the unchanged / new / removed, figure out what to do.
-
-Two important questions:
-
-- Are there any validators in my ChosenValidators that I dont want
-  * For example, they have dropped off all the trusted lists
-
-- Do I have enough?
-
---------------------------------------------------------------------------------
-ChosenValidators
---------------------------------------------------------------------------------
-
-David:
-  Maybe OC should have a URL that you can query to get the latest list of URI's
-  for OC-approved organzations that publish lists of validators. The server and
-  client can ship with that master trust URL and also the list of URI's at the
-  time it's released, in case for some reason it can't pull from OC. That would
-  make the default installation safe even against major changes in the
-  organizations that publish validator lists.
-
-  The difference is that if an organization that provides lists of validators
-  goes rogue, administrators don't have to act.
-
-TODO:
-  Write up from end-user perspective on the deployment and administration
-  of this feature, on the wiki. "DRAFT" or "PROPOSE" to mark it as provisional.
-  Template: https://ripple.com/wiki/Federation_protocol
-  - What to do if you're a publisher of ValidatorList
-  - What to do if you're a rippled administrator
-  - Overview of how ChosenValidators works
-
-Goals:
-  Make default configuration of rippled secure.
-    * Ship with TrustedUriList
-    * Also have a preset RankedValidators
-  Eliminate administrative burden of maintaining
-  Produce the ChosenValidators list.
-  Allow quantitative analysis of network health.
-
-What determines that a validator is good?
-  - Are they present (i.e. sending validations)
-  - Are they on the consensus ledger
-  - What percentage of consensus rounds do they participate in
-  - Are they stalling consensus
-    * Measurements of constructive/destructive behavior is
-      calculated in units of percentage of ledgers for which
-      the behavior is measured.
+    What determines that a validator is good?
+      - Are they present (i.e. sending validations)
+      - Are they on the consensus ledger
+      - What percentage of consensus rounds do they participate in
+      - Are they stalling consensus
+        * Measurements of constructive/destructive behavior is
+          calculated in units of percentage of ledgers for which
+          the behavior is measured.
 */
 
 namespace ripple {
@@ -104,37 +101,43 @@ namespace Validators {
 class ManagerImp
     : public Manager
     , public Stoppable
-    , public ThreadWithCallQueue::EntryPoints
+    , public Thread
     , public DeadlineTimer::Listener
     , public LeakChecked <ManagerImp>
 {
 public:
+    Journal m_journal;
+    StoreSqdb m_store;
+    Logic m_logic;
+    DeadlineTimer m_checkTimer;
+    ServiceQueue m_queue;
+
+    // True if we should call check on idle.
+    // This gets set to false once we make it through the whole list.
+    //
+    bool m_checkSources;
+
     ManagerImp (Stoppable& parent, Journal journal)
         : Stoppable ("Validators::Manager", parent)
-        , m_store (journal)
-        , m_logic (m_store, journal)
+        , Thread ("Validators")
         , m_journal (journal)
-        , m_thread ("Validators")
+        , m_store (m_journal)
+        , m_logic (m_store, m_journal)
         , m_checkTimer (this)
-        , m_checkSources (true) // true to cause a full scan on start
+        , m_checkSources (false)
     {
-        addRPCHandlers();
-        m_thread.start (this);
+#if BEAST_MSVC
+        if (beast_isRunningUnderDebugger())
+        {
+            m_journal.sink().set_console (true);
+            m_journal.sink().set_severity (Journal::kLowestSeverity);
+        }
+#endif
     }
 
     ~ManagerImp ()
     {
-        m_thread.stop (true);
-    }
-
-    //--------------------------------------------------------------------------
-    //
-    // Stoppable
-    //
-
-    void onStop ()
-    {
-        m_thread.stop (false);
+        stopThread ();
     }
 
     //--------------------------------------------------------------------------
@@ -149,7 +152,7 @@ public:
 
     Json::Value rpcRebuild (Json::Value const& args)
     {
-        m_thread.call (&Logic::buildChosen, &m_logic);
+        m_queue.dispatch (bind (&Logic::buildChosen, &m_logic));
         Json::Value result;
         result ["chosen_list"] = "rebuilding";
         return result;
@@ -191,7 +194,8 @@ public:
 
     void addFile (File const& file)
     {
-        addStaticSource (SourceFile::New (file));
+        //addStaticSource (SourceFile::New (file));
+        addSource (SourceFile::New (file));
     }
 
     void addURL (URL const& url)
@@ -204,8 +208,7 @@ public:
     void addSource (Source* source)
     {
 #if RIPPLE_USE_NEW_VALIDATORS
-        bassert (! isStopping());
-        //m_thread.call (&Logic::add, &m_logic, source);
+        m_queue.dispatch (bind (&Logic::add, &m_logic, source));
 #else
         delete source;
 #endif
@@ -214,52 +217,86 @@ public:
     void addStaticSource (Source* source)
     {
 #if RIPPLE_USE_NEW_VALIDATORS
-        bassert (! isStopping());
-        //m_thread.call (&Logic::addStatic, &m_logic, source);
+        m_queue.dispatch (bind (&Logic::addStatic, &m_logic, source));
 #else
         delete source;
 #endif
     }
 
+    // VFALCO NOTE we should just do this on the callers thread?
+    //
     void receiveValidation (ReceivedValidation const& rv)
     {
 #if RIPPLE_USE_NEW_VALIDATORS
         if (! isStopping())
-            m_thread.call (&Logic::receiveValidation, &m_logic, rv);
+            m_queue.dispatch (bind (
+                &Logic::receiveValidation, &m_logic, rv));
 #endif
     }
 
+    // VFALCO NOTE we should just do this on the callers thread?
+    //
     void ledgerClosed (RippleLedgerHash const& ledgerHash)
     {
 #if RIPPLE_USE_NEW_VALIDATORS
         if (! isStopping())
-            m_thread.call (&Logic::ledgerClosed, &m_logic, ledgerHash);
+            m_queue.dispatch (bind (
+                &Logic::ledgerClosed, &m_logic, ledgerHash));
 #endif
     }
 
     //--------------------------------------------------------------------------
+    //
+    // Stoppable
+    //
 
-    void onDeadlineTimer (DeadlineTimer& timer)
+    void onPrepare (Journal journal)
     {
 #if RIPPLE_USE_NEW_VALIDATORS
-        if (timer == m_checkTimer)
+        journal.info << "Validators preparing";
+
+        addRPCHandlers();
+#endif
+    }
+
+    void onStart (Journal journal)
+    {
+#if RIPPLE_USE_NEW_VALIDATORS
+        journal.info << "Validators starting";
+
+        // Do this late so the sources have a chance to be added.
+        m_queue.dispatch (bind (&ManagerImp::setCheckSources, this));
+
+        startThread();
+#endif
+    }
+
+    void onStop (Journal journal)
+    {
+        journal.info << "Validators stopping";
+
+        if (this->Thread::isThreadRunning())
         {
-            m_checkSources = true;
-
-            // This will kick us back into threadIdle
-            m_thread.interrupt();
+            m_journal.debug << "Signaling thread exit";
+            m_queue.dispatch (bind (&Thread::signalThreadShouldExit, this));
         }
-#endif
+        else
+        {
+            stopped();
+        }
     }
 
     //--------------------------------------------------------------------------
 
-    void threadInit ()
+    void init ()
     {
-#if RIPPLE_USE_NEW_VALIDATORS
+        m_journal.debug << "Initializing";
+
         File const file (File::getSpecialLocation (
             File::userDocumentsDirectory).getChildFile ("validators.sqlite"));
         
+        m_journal.debug << "Opening database at '" << file.getFullPathName() << "'";
+
         Error error (m_store.open (file));
 
         if (error)
@@ -271,55 +308,57 @@ public:
         if (! error)
         {
             m_logic.load ();
-
-            // This flag needs to be on, to force a full check of all
-            // sources on startup. Once we finish the check we will
-            // set the deadine timer.
-            //
-            bassert (m_checkSources);
         }
-#endif
     }
 
-    void threadExit ()
+    void onDeadlineTimer (DeadlineTimer& timer)
     {
-        // must come last
-        stopped ();
+        if (timer == m_checkTimer)
+        {
+            m_journal.debug << "Check timer expired";
+            m_queue.dispatch (bind (&ManagerImp::setCheckSources, this));
+        }
     }
 
-    bool threadIdle ()
+    void setCheckSources ()
     {
-        bool interrupted = false;
+        m_journal.debug << "Checking sources";
+        m_checkSources = true;
+    }
 
-#if RIPPLE_USE_NEW_VALIDATORS
+    void checkSources ()
+    {
         if (m_checkSources)
         {
-            ThreadCancelCallback cancelCallback (m_thread);
-            interrupted = m_logic.check (cancelCallback);
-            if (! interrupted)
+            if (m_logic.fetch_one () == 0)
             {
+                m_journal.debug << "All sources checked";
+
                 // Made it through the list without interruption!
                 // Clear the flag and set the deadline timer again.
+                //
                 m_checkSources = false;
+
+                m_journal.debug << "Next check timer expires in " <<
+                    RelativeTime::seconds (checkEverySeconds);
+
                 m_checkTimer.setExpiration (checkEverySeconds);
             }
         }
-#endif
-
-        return interrupted;
     }
 
-private:
-    StoreSqdb m_store;
-    Logic m_logic;
-    Journal m_journal;
-    ThreadWithCallQueue m_thread;
-    DeadlineTimer m_checkTimer;
+    void run ()
+    {
+        init ();
 
-    // True if we should call check on idle.
-    // This gets set to false once we make it through the whole
-    // list without interruption.
-    bool m_checkSources;
+        while (! this->threadShouldExit())
+        {
+            checkSources ();
+            m_queue.run_one();
+        }
+
+        stopped();
+    }
 };
 
 //------------------------------------------------------------------------------
