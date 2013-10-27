@@ -34,7 +34,8 @@ else:
 #
 
 env = Environment(
-    tools = ['default', 'protoc']
+    tools = ['default', 'protoc'],
+    CC = '$CC'
 )
 
 # Use a newer gcc on FreeBSD
