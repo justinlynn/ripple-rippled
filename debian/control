@@ -3,7 +3,7 @@ Maintainer: Ripple Labs Packaging Team <packagers@ripplelabs.com>
 Section: misc
 Priority: optional
 Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 8), scons, pkg-config, ctags, libboost1.48-all-dev | libboost1.49-all-dev, protobuf-compiler, libprotobuf-dev, nodejs, libssl-dev
+Build-Depends: debhelper (>= 8), scons, pkg-config, ctags, libboost1.54-all-dev | libboost1.54-all-dev, protobuf-compiler, libprotobuf-dev, nodejs, libssl-dev, gcc-4.8, g++-4.8
 
 Package: rippled
 Architecture: any
