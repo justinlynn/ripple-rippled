@@ -1,0 +1,4 @@
+rippled:
+  build: .
+  volumes:
+    - "build:/opt/ripple/rippled"

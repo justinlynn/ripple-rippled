@@ -1,0 +1,8 @@
+source :opscode
+
+metadata
+
+group :test do
+  cookbook 'apt'
+  cookbook 'ripple-rippled-test', path: './test/cookbooks/ripple-rippled-test'
+end

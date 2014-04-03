@@ -1,0 +1,3 @@
+source :opscode
+
+cookbook 'ripple-rippled', path: './cookbooks/ripple-rippled'
